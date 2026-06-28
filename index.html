@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MonoCap</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: #1a1a2e; color: #fff; font-family: sans-serif; overflow: hidden; }
+
+      #app {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 16px;
+        background: rgba(255,255,255,0.05);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        z-index: 10;
+      }
+
+      header h1 { font-size: 16px; font-weight: 600; letter-spacing: 0.05em; }
+
+      #status {
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 9999px;
+        background: rgba(255,255,255,0.1);
+      }
+      #status.ready   { background: #16a34a33; color: #4ade80; }
+      #status.loading { background: #d9770633; color: #fbbf24; }
+      #status.error   { background: #dc262633; color: #f87171; }
+
+      main {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr;
+        gap: 8px;
+        padding: 8px;
+        min-height: 0;
+      }
+
+      .panel {
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #000;
+      }
+
+      .panel-label {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        font-size: 11px;
+        background: rgba(0,0,0,0.6);
+        padding: 2px 8px;
+        border-radius: 4px;
+        z-index: 5;
+      }
+
+      #camera-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform: scaleX(-1);
+      }
+
+      #vrm-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      footer {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 16px;
+        background: rgba(255,255,255,0.05);
+        border-top: 1px solid rgba(255,255,255,0.1);
+      }
+
+      button {
+        padding: 6px 16px;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: opacity 0.2s;
+      }
+      button:hover { opacity: 0.85; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+      #btn-camera  { background: #3b82f6; color: #fff; }
+      #btn-load-vrm { background: #8b5cf6; color: #fff; }
+      #btn-capture { background: #10b981; color: #fff; }
+
+      #vrm-file-input { display: none; }
+
+      #fps { font-size: 11px; color: rgba(255,255,255,0.4); margin-left: auto; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>MonoCap</h1>
+        <span id="status" class="loading">初期化中...</span>
+      </header>
+
+      <main>
+        <div class="panel">
+          <span class="panel-label">カメラ映像</span>
+          <video id="camera-video" autoplay playsinline muted></video>
+        </div>
+        <div class="panel">
+          <span class="panel-label">3D モデル</span>
+          <canvas id="vrm-canvas"></canvas>
+        </div>
+      </main>
+
+      <footer>
+        <button id="btn-camera">カメラ開始</button>
+        <button id="btn-load-vrm">VRM 読み込み</button>
+        <button id="btn-capture" disabled>スクリーンショット</button>
+        <input id="vrm-file-input" type="file" accept=".vrm" />
+        <span id="fps"></span>
+      </footer>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
