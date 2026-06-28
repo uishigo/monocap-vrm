@@ -6,7 +6,14 @@ import { createTracker } from './tracker'
 import type { Tracker, TrackingResult } from './tracker'
 import { applyTracking } from './rigger'
 import { startCamera, stopCamera } from './camera'
-import type { FpsCounter } from './types'
+import { drawSkeleton } from './skeleton'
+import { initBackground } from './background'
+
+interface FpsCounter {
+  value: number
+  lastTime: number
+  frameCount: number
+}
 
 const video           = document.getElementById('camera-video')    as HTMLVideoElement
 const canvas          = document.getElementById('vrm-canvas')      as HTMLCanvasElement
@@ -39,12 +46,12 @@ let showSkeleton = true
 let mirrorMode = true
 let lastTrackingResult: TrackingResult | null = null
 
-const POSE_CONNECTIONS: [number, number][] = [
-  [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
-  [11, 23], [12, 24], [23, 24],
-  [23, 25], [25, 27], [27, 29], [29, 31],
-  [24, 26], [26, 28], [28, 30], [30, 32],
-]
+const fps: FpsCounter = { value: 0, lastTime: performance.now(), frameCount: 0 }
+
+function setStatus(text: string, type: 'ready' | 'loading' | 'error') {
+  statusEl.textContent = text
+  statusEl.className = type
+}
 
 function updateView() {
   video.style.visibility = showCamera ? 'visible' : 'hidden'
@@ -53,64 +60,11 @@ function updateView() {
   btnViewSkeleton.classList.toggle('active', showSkeleton)
 }
 
-function drawSkeleton(result: TrackingResult | null) {
-  const ctx = previewCanvas.getContext('2d')
-  if (!ctx) return
-
-  const w = previewCanvas.clientWidth
-  const h = previewCanvas.clientHeight
-  if (previewCanvas.width !== w || previewCanvas.height !== h) {
-    previewCanvas.width = w
-    previewCanvas.height = h
-  }
-
-  if (showCamera) {
-    ctx.clearRect(0, 0, w, h)  // transparent: landmarks over video
-  } else {
-    ctx.clearRect(0, 0, w, h)
-  }
-
-  if (!result) return
-
-  if (result.face?.faceLandmarks?.[0]) {
-    ctx.fillStyle = '#ff3333'
-    for (const lm of result.face.faceLandmarks[0]) {
-      ctx.beginPath()
-      ctx.arc((1 - lm.x) * w, lm.y * h, 1.5, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  }
-
-  const posePoints = result.pose?.landmarks?.[0]
-  if (posePoints) {
-    ctx.strokeStyle = 'rgba(255, 80, 80, 0.8)'
-    ctx.lineWidth = 2
-    for (const [a, b] of POSE_CONNECTIONS) {
-      const la = posePoints[a]
-      const lb = posePoints[b]
-      if (!la || !lb) continue
-      ctx.beginPath()
-      ctx.moveTo((1 - la.x) * w, la.y * h)
-      ctx.lineTo((1 - lb.x) * w, lb.y * h)
-      ctx.stroke()
-    }
-    ctx.fillStyle = '#ff3333'
-    for (const lm of posePoints) {
-      ctx.beginPath()
-      ctx.arc((1 - lm.x) * w, lm.y * h, 4, 0, Math.PI * 2)
-      ctx.fill()
-    }
-  }
-}
-
-const fps: FpsCounter = { value: 0, lastTime: performance.now(), frameCount: 0 }
-
-function setStatus(text: string, type: 'ready' | 'loading' | 'error') {
-  statusEl.textContent = text
-  statusEl.className = type
-}
-
 const { renderer, scene, camera, controls } = createRenderer(canvas)
+
+const bg = initBackground(canvas.closest('.panel') as HTMLElement, {
+  btnBgImage, bgPopup, bpNone, bpColor, bpColorSwatch, bpColorInput, bpImage, bgImageInput,
+})
 
 function tick(delta: number) {
   if (vrm) vrm.update(delta)
@@ -128,9 +82,7 @@ function tick(delta: number) {
     }
   }
 
-  if (showSkeleton) {
-    drawSkeleton(lastTrackingResult)
-  }
+  if (showSkeleton) drawSkeleton(previewCanvas, lastTrackingResult)
 
   fps.frameCount++
   const now = performance.now()
@@ -253,86 +205,10 @@ btnResetView.addEventListener('click', () => {
   controls.update()
 })
 
-type BgMode = 'none' | 'color' | 'image'
-let bgMode: BgMode = 'none'
-let bgColor = '#ffffff'
-let bgImageEl: HTMLImageElement | null = null
-let bgObjectUrl: string | null = null
-
-function applyBackground() {
-  const panel = canvas.closest('.panel') as HTMLElement
-  if (bgMode === 'none') {
-    panel.style.backgroundImage = ''
-    panel.style.backgroundColor = ''
-  } else if (bgMode === 'color') {
-    panel.style.backgroundImage = ''
-    panel.style.backgroundColor = bgColor
-  } else if (bgMode === 'image' && bgObjectUrl) {
-    panel.style.backgroundImage = `url(${bgObjectUrl})`
-    panel.style.backgroundSize = 'cover'
-    panel.style.backgroundPosition = 'center'
-    panel.style.backgroundColor = ''
-  }
-  btnBgImage.classList.toggle('active', bgMode !== 'none')
-  bpNone.classList.toggle('active', bgMode === 'none')
-  bpColor.classList.toggle('active', bgMode === 'color')
-  bpImage.classList.toggle('active', bgMode === 'image')
-  bpColorSwatch.style.display = bgMode === 'color' ? 'flex' : 'none'
-  bpColorSwatch.style.backgroundColor = bgColor
-}
-
-btnBgImage.addEventListener('click', (e) => {
-  e.stopPropagation()
-  bgPopup.classList.toggle('open')
-})
-
-bgPopup.addEventListener('click', (e) => e.stopPropagation())
-
-document.addEventListener('click', () => bgPopup.classList.remove('open'))
-
-bpNone.addEventListener('click', () => {
-  bgMode = 'none'
-  applyBackground()
-  bgPopup.classList.remove('open')
-})
-
-bpColor.addEventListener('click', () => {
-  bgMode = 'color'
-  applyBackground()
-  bpColorInput.click()
-})
-
-bpColorSwatch.addEventListener('click', () => bpColorInput.click())
-
-bpColorInput.addEventListener('input', () => {
-  bgColor = bpColorInput.value
-  if (bgMode === 'color') applyBackground()
-})
-
-bpImage.addEventListener('click', () => bgImageInput.click())
-
-bgImageInput.addEventListener('change', () => {
-  const file = bgImageInput.files?.[0]
-  if (!file) return
-
-  if (bgObjectUrl) URL.revokeObjectURL(bgObjectUrl)
-  bgObjectUrl = URL.createObjectURL(file)
-
-  const img = new Image()
-  img.onload = () => {
-    bgImageEl = img
-    bgMode = 'image'
-    applyBackground()
-  }
-  img.src = bgObjectUrl
-  bgImageInput.value = ''
-  bgPopup.classList.remove('open')
-})
-
 btnCapture.addEventListener('click', () => {
   renderer.render(scene, camera)
 
-  if (bgMode === 'none') {
+  if (bg.getMode() === 'none') {
     const link = document.createElement('a')
     link.download = `monocap-${Date.now()}.png`
     link.href = canvas.toDataURL('image/png')
@@ -345,11 +221,12 @@ btnCapture.addEventListener('click', () => {
   off.height = canvas.height
   const ctx = off.getContext('2d')!
 
-  if (bgMode === 'color') {
-    ctx.fillStyle = bgColor
+  if (bg.getMode() === 'color') {
+    ctx.fillStyle = bg.getColor()
     ctx.fillRect(0, 0, off.width, off.height)
-  } else if (bgMode === 'image' && bgImageEl) {
-    ctx.drawImage(bgImageEl, 0, 0, off.width, off.height)
+  } else if (bg.getMode() === 'image') {
+    const img = bg.getImage()
+    if (img) ctx.drawImage(img, 0, 0, off.width, off.height)
   }
 
   ctx.drawImage(canvas, 0, 0)
