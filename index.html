@@ -145,8 +145,10 @@
       #btn-mirror { background: #475569; color: #fff; }
       #btn-mirror.active { background: #0ea5e9; }
       #btn-fullscreen { background: #475569; color: #fff; }
+      #btn-bg-image { background: #475569; color: #fff; }
+      #btn-bg-image.active { background: #f59e0b; }
 
-      #btn-camera, #btn-load-vrm, #btn-capture, #btn-reset-view, #btn-mirror, #btn-fullscreen {
+      #btn-camera, #btn-load-vrm, #btn-capture, #btn-reset-view, #btn-mirror, #btn-fullscreen, #btn-bg-image {
         width: 36px;
         height: 36px;
         padding: 0;
@@ -175,6 +177,56 @@
       }
 
       #vrm-file-input { display: none; }
+      #bg-image-input { display: none; }
+
+      #bg-popup {
+        position: absolute;
+        bottom: 52px;
+        left: 8px;
+        background: rgba(10,10,22,0.93);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 8px;
+        padding: 6px 8px;
+        display: none;
+        align-items: center;
+        gap: 4px;
+        z-index: 10;
+        white-space: nowrap;
+      }
+      #bg-popup.open { display: flex; }
+      #bg-popup button {
+        width: auto;
+        height: 26px;
+        padding: 0 10px;
+        font-size: 11px;
+        font-weight: 500;
+        background: rgba(255,255,255,0.08);
+        color: rgba(255,255,255,0.65);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+        opacity: 1;
+      }
+      #bg-popup button:hover { opacity: 1; color: #fff; background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); }
+      #bg-popup button.active { background: rgba(255,255,255,0.22); color: #fff; border-color: rgba(255,255,255,0.4); }
+      #bg-popup #bp-color-swatch {
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border: 2px solid rgba(255,255,255,0.35);
+        border-radius: 4px;
+      }
+      #bp-color-input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+      }
 
       .panel:fullscreen {
         width: 100vw;
@@ -210,14 +262,23 @@
           <span class="panel-label">3D モデル</span>
           <button id="btn-load-vrm" title="VRM 読み込み"><i class="fa-solid fa-file-import"></i></button>
           <canvas id="vrm-canvas"></canvas>
+          <div id="bg-popup">
+            <button id="bp-none" class="active">なし</button>
+            <button id="bp-color">単色</button>
+            <button id="bp-color-swatch" style="display:none" title="色を変更"></button>
+            <input id="bp-color-input" type="color" value="#ffffff">
+            <button id="bp-image">画像</button>
+          </div>
           <div class="panel-controls">
             <button id="btn-capture" disabled title="スクリーンショット"><i class="fa-solid fa-camera"></i></button>
             <button id="btn-reset-view" title="視点リセット"><i class="fa-solid fa-arrows-rotate"></i></button>
             <button id="btn-mirror" class="active" title="ミラーリング: ON"><i class="fa-solid fa-left-right"></i></button>
+            <button id="btn-bg-image" title="背景設定"><i class="fa-solid fa-image"></i></button>
             <button id="btn-fullscreen" title="全画面表示"><i class="fa-solid fa-expand"></i></button>
           </div>
           <span id="fps"></span>
           <input id="vrm-file-input" type="file" accept=".vrm" />
+          <input id="bg-image-input" type="file" accept="image/*" />
         </div>
       </main>
     </div>

@@ -19,9 +19,17 @@ const btnCapture      = document.getElementById('btn-capture')     as HTMLButton
 const btnResetView    = document.getElementById('btn-reset-view')  as HTMLButtonElement
 const btnMirror       = document.getElementById('btn-mirror')      as HTMLButtonElement
 const btnFullscreen   = document.getElementById('btn-fullscreen')  as HTMLButtonElement
+const btnBgImage      = document.getElementById('btn-bg-image')    as HTMLButtonElement
 const btnViewCamera   = document.getElementById('btn-view-camera') as HTMLButtonElement
 const btnViewSkeleton = document.getElementById('btn-view-skeleton') as HTMLButtonElement
 const vrmFileInput    = document.getElementById('vrm-file-input')  as HTMLInputElement
+const bgImageInput    = document.getElementById('bg-image-input')  as HTMLInputElement
+const bgPopup         = document.getElementById('bg-popup')        as HTMLDivElement
+const bpNone          = document.getElementById('bp-none')         as HTMLButtonElement
+const bpColor         = document.getElementById('bp-color')        as HTMLButtonElement
+const bpColorSwatch   = document.getElementById('bp-color-swatch') as HTMLButtonElement
+const bpColorInput    = document.getElementById('bp-color-input')  as HTMLInputElement
+const bpImage         = document.getElementById('bp-image')        as HTMLButtonElement
 
 let vrm: VRM | null = null
 let tracker: Tracker | null = null
@@ -245,11 +253,110 @@ btnResetView.addEventListener('click', () => {
   controls.update()
 })
 
+type BgMode = 'none' | 'color' | 'image'
+let bgMode: BgMode = 'none'
+let bgColor = '#ffffff'
+let bgImageEl: HTMLImageElement | null = null
+let bgObjectUrl: string | null = null
+
+function applyBackground() {
+  const panel = canvas.closest('.panel') as HTMLElement
+  if (bgMode === 'none') {
+    panel.style.backgroundImage = ''
+    panel.style.backgroundColor = ''
+  } else if (bgMode === 'color') {
+    panel.style.backgroundImage = ''
+    panel.style.backgroundColor = bgColor
+  } else if (bgMode === 'image' && bgObjectUrl) {
+    panel.style.backgroundImage = `url(${bgObjectUrl})`
+    panel.style.backgroundSize = 'cover'
+    panel.style.backgroundPosition = 'center'
+    panel.style.backgroundColor = ''
+  }
+  btnBgImage.classList.toggle('active', bgMode !== 'none')
+  bpNone.classList.toggle('active', bgMode === 'none')
+  bpColor.classList.toggle('active', bgMode === 'color')
+  bpImage.classList.toggle('active', bgMode === 'image')
+  bpColorSwatch.style.display = bgMode === 'color' ? 'flex' : 'none'
+  bpColorSwatch.style.backgroundColor = bgColor
+}
+
+btnBgImage.addEventListener('click', (e) => {
+  e.stopPropagation()
+  bgPopup.classList.toggle('open')
+})
+
+bgPopup.addEventListener('click', (e) => e.stopPropagation())
+
+document.addEventListener('click', () => bgPopup.classList.remove('open'))
+
+bpNone.addEventListener('click', () => {
+  bgMode = 'none'
+  applyBackground()
+  bgPopup.classList.remove('open')
+})
+
+bpColor.addEventListener('click', () => {
+  bgMode = 'color'
+  applyBackground()
+  bpColorInput.click()
+})
+
+bpColorSwatch.addEventListener('click', () => bpColorInput.click())
+
+bpColorInput.addEventListener('input', () => {
+  bgColor = bpColorInput.value
+  if (bgMode === 'color') applyBackground()
+})
+
+bpImage.addEventListener('click', () => bgImageInput.click())
+
+bgImageInput.addEventListener('change', () => {
+  const file = bgImageInput.files?.[0]
+  if (!file) return
+
+  if (bgObjectUrl) URL.revokeObjectURL(bgObjectUrl)
+  bgObjectUrl = URL.createObjectURL(file)
+
+  const img = new Image()
+  img.onload = () => {
+    bgImageEl = img
+    bgMode = 'image'
+    applyBackground()
+  }
+  img.src = bgObjectUrl
+  bgImageInput.value = ''
+  bgPopup.classList.remove('open')
+})
+
 btnCapture.addEventListener('click', () => {
   renderer.render(scene, camera)
+
+  if (bgMode === 'none') {
+    const link = document.createElement('a')
+    link.download = `monocap-${Date.now()}.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+    return
+  }
+
+  const off = document.createElement('canvas')
+  off.width = canvas.width
+  off.height = canvas.height
+  const ctx = off.getContext('2d')!
+
+  if (bgMode === 'color') {
+    ctx.fillStyle = bgColor
+    ctx.fillRect(0, 0, off.width, off.height)
+  } else if (bgMode === 'image' && bgImageEl) {
+    ctx.drawImage(bgImageEl, 0, 0, off.width, off.height)
+  }
+
+  ctx.drawImage(canvas, 0, 0)
+
   const link = document.createElement('a')
   link.download = `monocap-${Date.now()}.png`
-  link.href = canvas.toDataURL('image/png')
+  link.href = off.toDataURL('image/png')
   link.click()
 })
 
