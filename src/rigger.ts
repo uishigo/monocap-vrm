@@ -20,18 +20,13 @@ function mediapipeFaceToKalido(result: FaceLandmarkerResult): TFace | null {
   if (!result.faceLandmarks?.length || !result.facialTransformationMatrixes?.length) return null
 
   const landmarks = result.faceLandmarks[0].map((lm) => ({ x: lm.x, y: lm.y, z: lm.z ?? 0 }))
-  const matrix = result.facialTransformationMatrixes[0]
 
   return Face.solve(landmarks, {
     runtime: 'mediapipe',
-    video: { width: 640, height: 480 },
     imageSize: { width: 640, height: 480 },
     smoothBlink: true,
     blinkSettings: [0.25, 0.75],
-    matrix: {
-      data: Array.from(matrix.data),
-    } as any,
-  })
+  } as any) ?? null
 }
 
 function mediapipePoseToKalido(result: PoseLandmarkerResult): TPose | null {
@@ -46,9 +41,8 @@ function mediapipePoseToKalido(result: PoseLandmarkerResult): TPose | null {
 
   return Pose.solve(landmarks, landmarks, {
     runtime: 'mediapipe',
-    video: { width: 640, height: 480 },
     imageSize: { width: 640, height: 480 },
-  })
+  } as any) ?? null
 }
 
 export function applyTracking(vrm: VRM, face: FaceLandmarkerResult | null, pose: PoseLandmarkerResult | null) {
@@ -64,7 +58,7 @@ export function applyTracking(vrm: VRM, face: FaceLandmarkerResult | null, pose:
       if (head) {
         lerpEuler(head, {
           x: faceRig.head.degrees.x * (Math.PI / 180) * 0.7,
-          y: faceRig.head.degrees.y * (Math.PI / 180) * -0.7,
+          y: faceRig.head.degrees.y * (Math.PI / 180) * 0.7,
           z: faceRig.head.degrees.z * (Math.PI / 180) * 0.7,
         })
       }
@@ -72,7 +66,7 @@ export function applyTracking(vrm: VRM, face: FaceLandmarkerResult | null, pose:
       if (neck) {
         lerpEuler(neck, {
           x: faceRig.head.degrees.x * (Math.PI / 180) * 0.3,
-          y: faceRig.head.degrees.y * (Math.PI / 180) * -0.3,
+          y: faceRig.head.degrees.y * (Math.PI / 180) * 0.3,
           z: faceRig.head.degrees.z * (Math.PI / 180) * 0.3,
         })
       }
