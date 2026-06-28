@@ -2,23 +2,93 @@ import * as THREE from 'three'
 import type { VRM } from '@pixiv/three-vrm'
 import { createRenderer, loadVRM } from './renderer'
 import { createTracker } from './tracker'
-import type { Tracker } from './tracker'
+import type { Tracker, TrackingResult } from './tracker'
 import { applyTracking } from './rigger'
 import { startCamera, stopCamera } from './camera'
 import type { FpsCounter } from './types'
 
-const video       = document.getElementById('camera-video')    as HTMLVideoElement
-const canvas      = document.getElementById('vrm-canvas')      as HTMLCanvasElement
-const statusEl    = document.getElementById('status')          as HTMLSpanElement
-const fpsEl       = document.getElementById('fps')             as HTMLSpanElement
-const btnCamera   = document.getElementById('btn-camera')      as HTMLButtonElement
-const btnLoadVrm  = document.getElementById('btn-load-vrm')    as HTMLButtonElement
-const btnCapture  = document.getElementById('btn-capture')     as HTMLButtonElement
-const vrmFileInput = document.getElementById('vrm-file-input') as HTMLInputElement
+const video           = document.getElementById('camera-video')    as HTMLVideoElement
+const canvas          = document.getElementById('vrm-canvas')      as HTMLCanvasElement
+const previewCanvas   = document.getElementById('preview-canvas')  as HTMLCanvasElement
+const statusEl        = document.getElementById('status')          as HTMLSpanElement
+const fpsEl           = document.getElementById('fps')             as HTMLSpanElement
+const btnCamera       = document.getElementById('btn-camera')      as HTMLButtonElement
+const btnLoadVrm      = document.getElementById('btn-load-vrm')    as HTMLButtonElement
+const btnCapture      = document.getElementById('btn-capture')     as HTMLButtonElement
+const btnViewCamera   = document.getElementById('btn-view-camera') as HTMLButtonElement
+const btnViewSkeleton = document.getElementById('btn-view-skeleton') as HTMLButtonElement
+const vrmFileInput    = document.getElementById('vrm-file-input')  as HTMLInputElement
 
 let vrm: VRM | null = null
 let tracker: Tracker | null = null
 let isTracking = false
+let showCamera = false
+let showSkeleton = false
+let lastTrackingResult: TrackingResult | null = null
+
+const POSE_CONNECTIONS: [number, number][] = [
+  [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+  [11, 23], [12, 24], [23, 24],
+  [23, 25], [25, 27], [27, 29], [29, 31],
+  [24, 26], [26, 28], [28, 30], [30, 32],
+]
+
+function updateView() {
+  video.style.visibility = showCamera ? 'visible' : 'hidden'
+  previewCanvas.style.display = showSkeleton ? 'block' : 'none'
+  btnViewCamera.classList.toggle('active', showCamera)
+  btnViewSkeleton.classList.toggle('active', showSkeleton)
+}
+
+function drawSkeleton(result: TrackingResult | null) {
+  const ctx = previewCanvas.getContext('2d')
+  if (!ctx) return
+
+  const w = previewCanvas.clientWidth
+  const h = previewCanvas.clientHeight
+  if (previewCanvas.width !== w || previewCanvas.height !== h) {
+    previewCanvas.width = w
+    previewCanvas.height = h
+  }
+
+  if (showCamera) {
+    ctx.clearRect(0, 0, w, h)  // transparent: landmarks over video
+  } else {
+    ctx.clearRect(0, 0, w, h)
+  }
+
+  if (!result) return
+
+  if (result.face?.faceLandmarks?.[0]) {
+    ctx.fillStyle = '#ff3333'
+    for (const lm of result.face.faceLandmarks[0]) {
+      ctx.beginPath()
+      ctx.arc((1 - lm.x) * w, lm.y * h, 1.5, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+
+  const posePoints = result.pose?.landmarks?.[0]
+  if (posePoints) {
+    ctx.strokeStyle = 'rgba(255, 80, 80, 0.8)'
+    ctx.lineWidth = 2
+    for (const [a, b] of POSE_CONNECTIONS) {
+      const la = posePoints[a]
+      const lb = posePoints[b]
+      if (!la || !lb) continue
+      ctx.beginPath()
+      ctx.moveTo((1 - la.x) * w, la.y * h)
+      ctx.lineTo((1 - lb.x) * w, lb.y * h)
+      ctx.stroke()
+    }
+    ctx.fillStyle = '#ff3333'
+    for (const lm of posePoints) {
+      ctx.beginPath()
+      ctx.arc((1 - lm.x) * w, lm.y * h, 4, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+}
 
 const fps: FpsCounter = { value: 0, lastTime: performance.now(), frameCount: 0 }
 
@@ -36,11 +106,16 @@ function tick(delta: number) {
 
   if (isTracking && tracker && video.readyState === 4) {
     try {
-      const { face, pose } = tracker.detect(video)
-      if (vrm) applyTracking(vrm, face, pose)
+      const result = tracker.detect(video)
+      lastTrackingResult = result
+      if (vrm) applyTracking(vrm, result.face, result.pose)
     } catch (e) {
       console.warn('tracking error:', e)
     }
+  }
+
+  if (showSkeleton) {
+    drawSkeleton(lastTrackingResult)
   }
 
   fps.frameCount++
@@ -77,6 +152,9 @@ btnCamera.addEventListener('click', async () => {
   if (isTracking) {
     isTracking = false
     stopCamera(video)
+    showCamera = false
+    lastTrackingResult = null
+    updateView()
     btnCamera.textContent = 'カメラ開始'
     setStatus(vrm ? '準備完了' : 'VRM未読み込み', 'ready')
     return
@@ -87,6 +165,8 @@ btnCamera.addEventListener('click', async () => {
     await startCamera(video)
     await initTracker()
     isTracking = true
+    showCamera = true
+    updateView()
     btnCamera.textContent = 'カメラ停止'
     setStatus('トラッキング中', 'ready')
   } catch (e) {
@@ -121,6 +201,9 @@ vrmFileInput.addEventListener('change', async () => {
     vrmFileInput.value = ''
   }
 })
+
+btnViewCamera.addEventListener('click', () => { showCamera = !showCamera; updateView() })
+btnViewSkeleton.addEventListener('click', () => { showSkeleton = !showSkeleton; updateView() })
 
 btnCapture.addEventListener('click', () => {
   renderer.render(scene, camera)
