@@ -210,7 +210,7 @@ btnCapture.addEventListener('click', () => {
 
   if (bg.getMode() === 'none') {
     const link = document.createElement('a')
-    link.download = `monocap-${Date.now()}.png`
+    link.download = `monocap-vrm-${Date.now()}.png`
     link.href = canvas.toDataURL('image/png')
     link.click()
     return
@@ -232,7 +232,7 @@ btnCapture.addEventListener('click', () => {
   ctx.drawImage(canvas, 0, 0)
 
   const link = document.createElement('a')
-  link.download = `monocap-${Date.now()}.png`
+  link.download = `monocap-vrm-${Date.now()}.png`
   link.href = off.toDataURL('image/png')
   link.click()
 })

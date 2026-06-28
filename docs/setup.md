@@ -19,7 +19,7 @@
 ```bash
 # すでにローカルにある場合はスキップ
 git clone <リポジトリURL>
-cd monocap
+cd monocap-vrm
 ```
 
 ### 2. 依存パッケージのインストール
@@ -43,7 +43,7 @@ npm install
 ## ディレクトリ構成
 
 ```
-monocap/
+monocap-vrm/
 ├── docs/                  # 本ドキュメント
 │   ├── setup.md           # 環境構築手順（本ファイル）
 │   └── usage.md           # 使い方・実行手順
