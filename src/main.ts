@@ -18,6 +18,7 @@ const btnLoadVrm      = document.getElementById('btn-load-vrm')    as HTMLButton
 const btnCapture      = document.getElementById('btn-capture')     as HTMLButtonElement
 const btnResetView    = document.getElementById('btn-reset-view')  as HTMLButtonElement
 const btnMirror       = document.getElementById('btn-mirror')      as HTMLButtonElement
+const btnFullscreen   = document.getElementById('btn-fullscreen')  as HTMLButtonElement
 const btnViewCamera   = document.getElementById('btn-view-camera') as HTMLButtonElement
 const btnViewSkeleton = document.getElementById('btn-view-skeleton') as HTMLButtonElement
 const vrmFileInput    = document.getElementById('vrm-file-input')  as HTMLInputElement
@@ -219,6 +220,23 @@ btnMirror.addEventListener('click', () => {
   mirrorMode = !mirrorMode
   btnMirror.title = mirrorMode ? 'ミラーリング: ON' : 'ミラーリング: OFF'
   btnMirror.classList.toggle('active', mirrorMode)
+})
+
+btnFullscreen.addEventListener('click', () => {
+  const vrmPanel = canvas.closest('.panel') as HTMLElement
+  if (!document.fullscreenElement) {
+    vrmPanel.requestFullscreen()
+  } else {
+    document.exitFullscreen()
+  }
+})
+
+document.addEventListener('fullscreenchange', () => {
+  const isFs = !!document.fullscreenElement
+  btnFullscreen.innerHTML = isFs
+    ? '<i class="fa-solid fa-compress"></i>'
+    : '<i class="fa-solid fa-expand"></i>'
+  btnFullscreen.title = isFs ? '全画面解除' : '全画面表示'
 })
 
 btnResetView.addEventListener('click', () => {

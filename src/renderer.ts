@@ -30,15 +30,23 @@ export function createRenderer(canvas: HTMLCanvasElement) {
   controls.maxDistance = 10
   controls.update()
 
-  const resizeObserver = new ResizeObserver(() => {
+  const applySize = () => {
+    canvas.style.width = ''
+    canvas.style.height = ''
     const w = canvas.clientWidth
     const h = canvas.clientHeight
     if (w === 0 || h === 0) return
     renderer.setSize(w, h)
     camera.aspect = w / h
     camera.updateProjectionMatrix()
-  })
+  }
+
+  const resizeObserver = new ResizeObserver(applySize)
   resizeObserver.observe(canvas)
+
+  document.addEventListener('fullscreenchange', () => {
+    requestAnimationFrame(applySize)
+  })
 
   return { renderer, scene, camera, controls }
 }
