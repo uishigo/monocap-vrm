@@ -67,7 +67,8 @@
       .view-toggle {
         position: absolute;
         top: 8px;
-        right: 8px;
+        left: 50%;
+        transform: translateX(-50%);
         display: flex;
         gap: 2px;
         z-index: 5;
@@ -109,15 +110,6 @@
         display: block;
       }
 
-      footer {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 8px 16px;
-        background: rgba(255,255,255,0.05);
-        border-top: 1px solid rgba(255,255,255,0.1);
-      }
-
       button {
         padding: 6px 16px;
         border-radius: 6px;
@@ -130,16 +122,58 @@
       button:hover { opacity: 0.85; }
       button:disabled { opacity: 0.4; cursor: not-allowed; }
 
-      #btn-camera  { background: #3b82f6; color: #fff; }
-      #btn-load-vrm { background: #8b5cf6; color: #fff; }
-      #btn-capture { background: #10b981; color: #fff; }
+      #btn-camera {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 5;
+        background: #3b82f6;
+        color: #fff;
+      }
+
+      #btn-load-vrm {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 5;
+        background: #8b5cf6;
+        color: #fff;
+      }
+
+      #btn-capture  { background: #10b981; color: #fff; }
       #btn-reset-view { background: #475569; color: #fff; }
       #btn-mirror { background: #475569; color: #fff; }
       #btn-mirror.active { background: #0ea5e9; }
 
-      #vrm-file-input { display: none; }
+      #btn-camera, #btn-load-vrm, #btn-capture, #btn-reset-view, #btn-mirror {
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+      }
 
-      #fps { font-size: 11px; color: rgba(255,255,255,0.4); margin-left: auto; }
+      .panel-controls {
+        position: absolute;
+        bottom: 8px;
+        left: 8px;
+        display: flex;
+        gap: 4px;
+        z-index: 5;
+      }
+
+      #fps {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        font-size: 11px;
+        color: rgba(255,255,255,0.4);
+        z-index: 5;
+      }
+
+      #vrm-file-input { display: none; }
     </style>
   </head>
   <body>
@@ -153,27 +187,26 @@
         <div class="panel">
           <span class="panel-label">カメラ映像</span>
           <div class="view-toggle">
-            <button id="btn-view-camera" class="view-btn active">カメラ</button>
-            <button id="btn-view-skeleton" class="view-btn">骨格</button>
+            <button id="btn-view-camera" class="view-btn">カメラ</button>
+            <button id="btn-view-skeleton" class="view-btn active">骨格</button>
           </div>
+          <button id="btn-camera" title="カメラ: OFF"><i class="fa-solid fa-video-slash"></i></button>
           <video id="camera-video" autoplay playsinline muted></video>
           <canvas id="preview-canvas"></canvas>
         </div>
         <div class="panel">
           <span class="panel-label">3D モデル</span>
+          <button id="btn-load-vrm" title="VRM 読み込み"><i class="fa-solid fa-file-import"></i></button>
           <canvas id="vrm-canvas"></canvas>
+          <div class="panel-controls">
+            <button id="btn-capture" disabled title="スクリーンショット"><i class="fa-solid fa-camera"></i></button>
+            <button id="btn-reset-view" title="視点リセット"><i class="fa-solid fa-arrows-rotate"></i></button>
+            <button id="btn-mirror" class="active" title="ミラーリング: ON"><i class="fa-solid fa-left-right"></i></button>
+          </div>
+          <span id="fps"></span>
+          <input id="vrm-file-input" type="file" accept=".vrm" />
         </div>
       </main>
-
-      <footer>
-        <button id="btn-camera">カメラ開始</button>
-        <button id="btn-load-vrm">VRM 読み込み</button>
-        <button id="btn-capture" disabled>スクリーンショット</button>
-        <button id="btn-reset-view">視点リセット</button>
-        <button id="btn-mirror" class="active">ミラーリング: ON</button>
-        <input id="vrm-file-input" type="file" accept=".vrm" />
-        <span id="fps"></span>
-      </footer>
     </div>
 
     <script type="module" src="/src/main.ts"></script>

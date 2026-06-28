@@ -1,3 +1,4 @@
+import '@fortawesome/fontawesome-free/css/all.min.css'
 import * as THREE from 'three'
 import type { VRM } from '@pixiv/three-vrm'
 import { createRenderer, loadVRM } from './renderer'
@@ -25,7 +26,7 @@ let vrm: VRM | null = null
 let tracker: Tracker | null = null
 let isTracking = false
 let showCamera = false
-let showSkeleton = false
+let showSkeleton = true
 let mirrorMode = true
 let lastTrackingResult: TrackingResult | null = null
 
@@ -160,7 +161,8 @@ btnCamera.addEventListener('click', async () => {
     showSkeleton = false
     lastTrackingResult = null
     updateView()
-    btnCamera.textContent = 'カメラ開始'
+    btnCamera.innerHTML = '<i class="fa-solid fa-video-slash"></i>'
+    btnCamera.title = 'カメラ: OFF'
     setStatus(vrm ? '準備完了' : 'VRM未読み込み', 'ready')
     return
   }
@@ -174,7 +176,8 @@ btnCamera.addEventListener('click', async () => {
     showCamera = false
     showSkeleton = true
     updateView()
-    btnCamera.textContent = 'カメラ停止'
+    btnCamera.innerHTML = '<i class="fa-solid fa-video"></i>'
+    btnCamera.title = 'カメラ: ON'
     setStatus('トラッキング中', 'ready')
   } catch (e) {
     setStatus('カメラアクセス失敗', 'error')
@@ -214,7 +217,7 @@ btnViewSkeleton.addEventListener('click', () => { showSkeleton = !showSkeleton; 
 
 btnMirror.addEventListener('click', () => {
   mirrorMode = !mirrorMode
-  btnMirror.textContent = mirrorMode ? 'ミラーリング: ON' : 'ミラーリング: OFF'
+  btnMirror.title = mirrorMode ? 'ミラーリング: ON' : 'ミラーリング: OFF'
   btnMirror.classList.toggle('active', mirrorMode)
 })
 
@@ -233,4 +236,5 @@ btnCapture.addEventListener('click', () => {
 })
 
 setStatus('VRM を読み込んでください', 'loading')
+updateView()
 loop()
