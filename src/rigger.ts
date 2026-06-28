@@ -45,9 +45,10 @@ function mediapipePoseToKalido(result: PoseLandmarkerResult): TPose | null {
   } as any) ?? null
 }
 
-export function applyTracking(vrm: VRM, face: FaceLandmarkerResult | null, pose: PoseLandmarkerResult | null) {
+export function applyTracking(vrm: VRM, face: FaceLandmarkerResult | null, pose: PoseLandmarkerResult | null, mirror = true) {
   const humanoid = vrm.humanoid
   const expressionManager = vrm.expressionManager
+  const s = mirror ? 1 : -1  // flip Y/Z axes when mirror is off
 
   if (face) {
     const faceRig = mediapipeFaceToKalido(face)
@@ -58,16 +59,16 @@ export function applyTracking(vrm: VRM, face: FaceLandmarkerResult | null, pose:
       if (head) {
         lerpEuler(head, {
           x: faceRig.head.degrees.x * (Math.PI / 180) * 0.7,
-          y: faceRig.head.degrees.y * (Math.PI / 180) * 0.7,
-          z: faceRig.head.degrees.z * (Math.PI / 180) * 0.7,
+          y: faceRig.head.degrees.y * (Math.PI / 180) * 0.7 * s,
+          z: faceRig.head.degrees.z * (Math.PI / 180) * 0.7 * s,
         })
       }
 
       if (neck) {
         lerpEuler(neck, {
           x: faceRig.head.degrees.x * (Math.PI / 180) * 0.3,
-          y: faceRig.head.degrees.y * (Math.PI / 180) * 0.3,
-          z: faceRig.head.degrees.z * (Math.PI / 180) * 0.3,
+          y: faceRig.head.degrees.y * (Math.PI / 180) * 0.3 * s,
+          z: faceRig.head.degrees.z * (Math.PI / 180) * 0.3 * s,
         })
       }
 
@@ -86,14 +87,23 @@ export function applyTracking(vrm: VRM, face: FaceLandmarkerResult | null, pose:
   if (pose) {
     const poseRig = mediapipePoseToKalido(pose)
     if (poseRig) {
-      const boneMap: [VRMHumanBoneName, keyof TPose, number][] = [
-        [VRMHumanBoneName.LeftUpperArm,  'LeftUpperArm',  1],
-        [VRMHumanBoneName.LeftLowerArm,  'LeftLowerArm',  1],
-        [VRMHumanBoneName.RightUpperArm, 'RightUpperArm', 1],
-        [VRMHumanBoneName.RightLowerArm, 'RightLowerArm', 1],
-        [VRMHumanBoneName.Hips,          'Hips',          1],
-        [VRMHumanBoneName.Spine,         'Spine',         0.5],
-      ]
+      const boneMap: [VRMHumanBoneName, keyof TPose, number][] = mirror
+        ? [
+            [VRMHumanBoneName.LeftUpperArm,  'LeftUpperArm',  1],
+            [VRMHumanBoneName.LeftLowerArm,  'LeftLowerArm',  1],
+            [VRMHumanBoneName.RightUpperArm, 'RightUpperArm', 1],
+            [VRMHumanBoneName.RightLowerArm, 'RightLowerArm', 1],
+            [VRMHumanBoneName.Hips,          'Hips',          1],
+            [VRMHumanBoneName.Spine,         'Spine',         0.5],
+          ]
+        : [
+            [VRMHumanBoneName.LeftUpperArm,  'RightUpperArm', 1],
+            [VRMHumanBoneName.LeftLowerArm,  'RightLowerArm', 1],
+            [VRMHumanBoneName.RightUpperArm, 'LeftUpperArm',  1],
+            [VRMHumanBoneName.RightLowerArm, 'LeftLowerArm',  1],
+            [VRMHumanBoneName.Hips,          'Hips',          1],
+            [VRMHumanBoneName.Spine,         'Spine',         0.5],
+          ]
 
       for (const [boneName, rigKey, scale] of boneMap) {
         const bone = humanoid.getNormalizedBoneNode(boneName)
@@ -101,8 +111,8 @@ export function applyTracking(vrm: VRM, face: FaceLandmarkerResult | null, pose:
         if (bone && rig) {
           lerpEuler(bone, {
             x: rig.x * scale,
-            y: rig.y * scale,
-            z: rig.z * scale,
+            y: rig.y * scale * s,
+            z: rig.z * scale * s,
           })
         }
       }

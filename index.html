@@ -134,6 +134,8 @@
       #btn-load-vrm { background: #8b5cf6; color: #fff; }
       #btn-capture { background: #10b981; color: #fff; }
       #btn-reset-view { background: #475569; color: #fff; }
+      #btn-mirror { background: #475569; color: #fff; }
+      #btn-mirror.active { background: #0ea5e9; }
 
       #vrm-file-input { display: none; }
 
@@ -168,6 +170,7 @@
         <button id="btn-load-vrm">VRM 読み込み</button>
         <button id="btn-capture" disabled>スクリーンショット</button>
         <button id="btn-reset-view">視点リセット</button>
+        <button id="btn-mirror" class="active">ミラーリング: ON</button>
         <input id="vrm-file-input" type="file" accept=".vrm" />
         <span id="fps"></span>
       </footer>

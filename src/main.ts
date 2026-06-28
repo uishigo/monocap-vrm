@@ -16,6 +16,7 @@ const btnCamera       = document.getElementById('btn-camera')      as HTMLButton
 const btnLoadVrm      = document.getElementById('btn-load-vrm')    as HTMLButtonElement
 const btnCapture      = document.getElementById('btn-capture')     as HTMLButtonElement
 const btnResetView    = document.getElementById('btn-reset-view')  as HTMLButtonElement
+const btnMirror       = document.getElementById('btn-mirror')      as HTMLButtonElement
 const btnViewCamera   = document.getElementById('btn-view-camera') as HTMLButtonElement
 const btnViewSkeleton = document.getElementById('btn-view-skeleton') as HTMLButtonElement
 const vrmFileInput    = document.getElementById('vrm-file-input')  as HTMLInputElement
@@ -25,6 +26,7 @@ let tracker: Tracker | null = null
 let isTracking = false
 let showCamera = false
 let showSkeleton = false
+let mirrorMode = true
 let lastTrackingResult: TrackingResult | null = null
 
 const POSE_CONNECTIONS: [number, number][] = [
@@ -110,7 +112,7 @@ function tick(delta: number) {
     try {
       const result = tracker.detect(video)
       lastTrackingResult = result
-      if (vrm) applyTracking(vrm, result.face, result.pose)
+      if (vrm) applyTracking(vrm, result.face, result.pose, mirrorMode)
     } catch (e) {
       console.warn('tracking error:', e)
     }
@@ -209,6 +211,12 @@ vrmFileInput.addEventListener('change', async () => {
 
 btnViewCamera.addEventListener('click', () => { showCamera = !showCamera; updateView() })
 btnViewSkeleton.addEventListener('click', () => { showSkeleton = !showSkeleton; updateView() })
+
+btnMirror.addEventListener('click', () => {
+  mirrorMode = !mirrorMode
+  btnMirror.textContent = mirrorMode ? 'ミラーリング: ON' : 'ミラーリング: OFF'
+  btnMirror.classList.toggle('active', mirrorMode)
+})
 
 btnResetView.addEventListener('click', () => {
   camera.position.set(0, 1.3, 3)
