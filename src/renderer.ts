@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm'
 import type { VRM } from '@pixiv/three-vrm'
 
@@ -13,7 +14,6 @@ export function createRenderer(canvas: HTMLCanvasElement) {
 
   const camera = new THREE.PerspectiveCamera(30, canvas.clientWidth / canvas.clientHeight, 0.1, 20)
   camera.position.set(0, 1.3, 3)
-  camera.lookAt(0, 1.3, 0)
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
   scene.add(ambientLight)
@@ -21,6 +21,14 @@ export function createRenderer(canvas: HTMLCanvasElement) {
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.8)
   dirLight.position.set(1, 2, 3)
   scene.add(dirLight)
+
+  const controls = new OrbitControls(camera, canvas)
+  controls.target.set(0, 1.3, 0)
+  controls.enableDamping = true
+  controls.dampingFactor = 0.1
+  controls.minDistance = 0.5
+  controls.maxDistance = 10
+  controls.update()
 
   const resizeObserver = new ResizeObserver(() => {
     const w = canvas.clientWidth
@@ -32,7 +40,7 @@ export function createRenderer(canvas: HTMLCanvasElement) {
   })
   resizeObserver.observe(canvas)
 
-  return { renderer, scene, camera }
+  return { renderer, scene, camera, controls }
 }
 
 export async function loadVRM(scene: THREE.Scene, url: string): Promise<VRM> {

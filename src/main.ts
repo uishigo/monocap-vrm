@@ -15,6 +15,7 @@ const fpsEl           = document.getElementById('fps')             as HTMLSpanEl
 const btnCamera       = document.getElementById('btn-camera')      as HTMLButtonElement
 const btnLoadVrm      = document.getElementById('btn-load-vrm')    as HTMLButtonElement
 const btnCapture      = document.getElementById('btn-capture')     as HTMLButtonElement
+const btnResetView    = document.getElementById('btn-reset-view')  as HTMLButtonElement
 const btnViewCamera   = document.getElementById('btn-view-camera') as HTMLButtonElement
 const btnViewSkeleton = document.getElementById('btn-view-skeleton') as HTMLButtonElement
 const vrmFileInput    = document.getElementById('vrm-file-input')  as HTMLInputElement
@@ -97,11 +98,12 @@ function setStatus(text: string, type: 'ready' | 'loading' | 'error') {
   statusEl.className = type
 }
 
-const { renderer, scene, camera } = createRenderer(canvas)
+const { renderer, scene, camera, controls } = createRenderer(canvas)
 
 function tick(delta: number) {
   if (vrm) vrm.update(delta)
 
+  controls.update()
   renderer.render(scene, camera)
 
   if (isTracking && tracker && video.readyState === 4) {
@@ -204,6 +206,12 @@ vrmFileInput.addEventListener('change', async () => {
 
 btnViewCamera.addEventListener('click', () => { showCamera = !showCamera; updateView() })
 btnViewSkeleton.addEventListener('click', () => { showSkeleton = !showSkeleton; updateView() })
+
+btnResetView.addEventListener('click', () => {
+  camera.position.set(0, 1.3, 3)
+  controls.target.set(0, 1.3, 0)
+  controls.update()
+})
 
 btnCapture.addEventListener('click', () => {
   renderer.render(scene, camera)
