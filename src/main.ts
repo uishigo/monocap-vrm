@@ -155,6 +155,7 @@ btnCamera.addEventListener('click', async () => {
     isTracking = false
     stopCamera(video)
     showCamera = false
+    showSkeleton = false
     lastTrackingResult = null
     updateView()
     btnCamera.textContent = 'カメラ開始'
@@ -165,9 +166,11 @@ btnCamera.addEventListener('click', async () => {
   try {
     setStatus('カメラ起動中...', 'loading')
     await startCamera(video)
+    updateView()
     await initTracker()
     isTracking = true
-    showCamera = true
+    showCamera = false
+    showSkeleton = true
     updateView()
     btnCamera.textContent = 'カメラ停止'
     setStatus('トラッキング中', 'ready')
