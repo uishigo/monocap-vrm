@@ -1,3 +1,4 @@
+import './style.css'
 import '@fortawesome/fontawesome-free/css/all.min.css'
 import * as THREE from 'three'
 import type { VRM } from '@pixiv/three-vrm'
@@ -31,6 +32,9 @@ const btnViewCamera   = document.getElementById('btn-view-camera') as HTMLButton
 const btnViewSkeleton = document.getElementById('btn-view-skeleton') as HTMLButtonElement
 const vrmFileInput    = document.getElementById('vrm-file-input')  as HTMLInputElement
 const bgImageInput    = document.getElementById('bg-image-input')  as HTMLInputElement
+const vrmLoadPopup    = document.getElementById('vrm-load-popup')  as HTMLDivElement
+const vlpFile         = document.getElementById('vlp-file')        as HTMLButtonElement
+const vlpServerList   = document.getElementById('vlp-server-list') as HTMLDivElement
 const bgPopup         = document.getElementById('bg-popup')        as HTMLDivElement
 const bpNone          = document.getElementById('bp-none')         as HTMLButtonElement
 const bpColor         = document.getElementById('bp-color')        as HTMLButtonElement
@@ -146,14 +150,8 @@ btnCamera.addEventListener('click', async () => {
   }
 })
 
-btnLoadVrm.addEventListener('click', () => vrmFileInput.click())
-
-vrmFileInput.addEventListener('change', async () => {
-  const file = vrmFileInput.files?.[0]
-  if (!file) return
-
+async function loadVrmFrom(url: string, isObjectUrl = false) {
   setStatus('VRM 読み込み中...', 'loading')
-  const url = URL.createObjectURL(file)
   try {
     if (vrm) {
       scene.remove(vrm.scene)
@@ -168,9 +166,60 @@ vrmFileInput.addEventListener('change', async () => {
     setStatus('VRM 読み込み失敗', 'error')
     console.error(e)
   } finally {
-    URL.revokeObjectURL(url)
+    if (isObjectUrl) URL.revokeObjectURL(url)
     vrmFileInput.value = ''
   }
+}
+
+interface VrmEntry { name: string; path: string }
+
+async function populateServerList() {
+  vlpServerList.innerHTML = '<span style="font-size:11px;color:rgba(255,255,255,0.3);padding:2px 4px">読み込み中...</span>'
+  try {
+    const res = await fetch('/models/vrm-list.json')
+    const list: VrmEntry[] = await res.json()
+    vlpServerList.innerHTML = ''
+    if (list.length === 0) {
+      vlpServerList.innerHTML = '<span style="font-size:11px;color:rgba(255,255,255,0.3);padding:2px 4px">サーバー上にモデルがありません</span>'
+      return
+    }
+    for (const entry of list) {
+      const btn = document.createElement('button')
+      btn.className = 'vlp-item'
+      btn.innerHTML = `<i class="fa-solid fa-cube"></i>${entry.name}`
+      btn.title = entry.path
+      btn.addEventListener('click', () => {
+        vrmLoadPopup.classList.remove('open')
+        loadVrmFrom(entry.path)
+      })
+      vlpServerList.appendChild(btn)
+    }
+  } catch {
+    vlpServerList.innerHTML = '<span style="font-size:11px;color:rgba(255,87,87,0.8);padding:2px 4px">リスト取得失敗</span>'
+  }
+}
+
+btnLoadVrm.addEventListener('click', () => {
+  const opening = !vrmLoadPopup.classList.contains('open')
+  vrmLoadPopup.classList.toggle('open')
+  if (opening) populateServerList()
+})
+
+document.addEventListener('click', (e) => {
+  if (!vrmLoadPopup.contains(e.target as Node) && e.target !== btnLoadVrm) {
+    vrmLoadPopup.classList.remove('open')
+  }
+})
+
+vlpFile.addEventListener('click', () => {
+  vrmLoadPopup.classList.remove('open')
+  vrmFileInput.click()
+})
+
+vrmFileInput.addEventListener('change', async () => {
+  const file = vrmFileInput.files?.[0]
+  if (!file) return
+  await loadVrmFrom(URL.createObjectURL(file), true)
 })
 
 btnViewCamera.addEventListener('click', () => { showCamera = !showCamera; updateView() })
