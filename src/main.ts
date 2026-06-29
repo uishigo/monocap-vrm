@@ -49,6 +49,8 @@ let showCamera = false
 let showSkeleton = true
 let mirrorMode = true
 let lastTrackingResult: TrackingResult | null = null
+let lastDetectTime = 0
+const DETECT_INTERVAL = 1000 / 15  // 15fps に制限
 
 const fps: FpsCounter = { value: 0, lastTime: performance.now(), frameCount: 0 }
 
@@ -76,7 +78,9 @@ function tick(delta: number) {
   controls.update()
   renderer.render(scene, camera)
 
-  if (isTracking && tracker && video.readyState === 4) {
+  const now = performance.now()
+  if (isTracking && tracker && video.readyState === 4 && now - lastDetectTime >= DETECT_INTERVAL) {
+    lastDetectTime = now
     try {
       const result = tracker.detect(video)
       lastTrackingResult = result
@@ -89,7 +93,6 @@ function tick(delta: number) {
   if (showSkeleton) drawSkeleton(previewCanvas, lastTrackingResult)
 
   fps.frameCount++
-  const now = performance.now()
   if (now - fps.lastTime >= 1000) {
     fps.value = fps.frameCount
     fps.frameCount = 0
@@ -156,8 +159,19 @@ async function loadVrmFrom(url: string, isObjectUrl = false) {
     if (vrm) {
       scene.remove(vrm.scene)
       vrm.scene.traverse((obj) => {
-        if ((obj as THREE.Mesh).geometry) (obj as THREE.Mesh).geometry.dispose()
+        const mesh = obj as THREE.Mesh
+        if (mesh.geometry) mesh.geometry.dispose()
+        if (mesh.material) {
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+          for (const mat of materials) {
+            for (const val of Object.values(mat as unknown as Record<string, unknown>)) {
+              if (val instanceof THREE.Texture) val.dispose()
+            }
+            mat.dispose()
+          }
+        }
       })
+      vrm = null
     }
     vrm = await loadVRM(scene, url)
     btnCapture.disabled = false
