@@ -176,7 +176,7 @@ interface VrmEntry { name: string; path: string }
 async function populateServerList() {
   vlpServerList.innerHTML = '<span style="font-size:11px;color:rgba(255,255,255,0.3);padding:2px 4px">読み込み中...</span>'
   try {
-    const res = await fetch('/models/vrm-list.json')
+    const res = await fetch(`${import.meta.env.BASE_URL}models/vrm-list.json`)
     const list: VrmEntry[] = await res.json()
     vlpServerList.innerHTML = ''
     if (list.length === 0) {
