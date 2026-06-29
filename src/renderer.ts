@@ -5,8 +5,9 @@ import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm'
 import type { VRM } from '@pixiv/three-vrm'
 
 export function createRenderer(canvas: HTMLCanvasElement) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobile, alpha: true })
+  renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.0) : Math.min(window.devicePixelRatio, 1.5))
   renderer.setSize(canvas.clientWidth, canvas.clientHeight)
   renderer.outputColorSpace = THREE.SRGBColorSpace
 

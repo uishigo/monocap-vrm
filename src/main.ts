@@ -50,7 +50,8 @@ let showSkeleton = true
 let mirrorMode = true
 let lastTrackingResult: TrackingResult | null = null
 let lastDetectTime = 0
-const DETECT_INTERVAL = 1000 / 15  // 15fps に制限
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+const DETECT_INTERVAL = 1000 / (isMobile ? 10 : 30)  // モバイルは10fps、PCは30fps
 
 const fps: FpsCounter = { value: 0, lastTime: performance.now(), frameCount: 0 }
 
