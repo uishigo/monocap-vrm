@@ -6,7 +6,7 @@ import type { VRM } from '@pixiv/three-vrm'
 
 export function createRenderer(canvas: HTMLCanvasElement) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
-  renderer.setPixelRatio(window.devicePixelRatio)
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
   renderer.setSize(canvas.clientWidth, canvas.clientHeight)
   renderer.outputColorSpace = THREE.SRGBColorSpace
 
