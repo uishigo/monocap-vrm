@@ -238,6 +238,24 @@
         height: 100vh;
         border-radius: 0;
       }
+
+      @media (max-width: 640px) {
+        body { overflow: auto; }
+
+        #app { height: auto; min-height: 100vh; }
+
+        main {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto;
+          flex: none;
+        }
+
+        .panel { height: 48svh; }
+
+        header h1 { font-size: 14px; }
+
+        .view-toggle { left: 50%; }
+      }
     </style>
   </head>
   <body>
