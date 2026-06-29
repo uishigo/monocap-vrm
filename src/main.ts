@@ -190,7 +190,7 @@ async function populateServerList() {
       btn.title = entry.path
       btn.addEventListener('click', () => {
         vrmLoadPopup.classList.remove('open')
-        loadVrmFrom(entry.path)
+        loadVrmFrom(`${import.meta.env.BASE_URL}${entry.path}`)
       })
       vlpServerList.appendChild(btn)
     }
