@@ -52,7 +52,13 @@ export default defineConfig({
 })
 ```
 
-**Step 2: GitHub Actions のワークフローを作成**
+**Step 2: GitHub リポジトリの Pages 設定を変更**
+
+リポジトリページ → **Settings → Pages → Build and deployment → Source** を **GitHub Actions** に変更。
+
+> ブランチ選択などは不要です。ワークフローが直接デプロイします。
+
+**Step 3: GitHub Actions のワークフローを作成**
 
 ```bash
 mkdir -p .github/workflows
@@ -67,11 +73,18 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -80,23 +93,28 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - uses: peaceiris/actions-gh-pages@v4
+      - uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: dist
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v4
+        id: deployment
 ```
 
-**Step 3: コミットして push**
+**Step 4: コミットして push**
 
 ```bash
 git add vite.config.ts .github/workflows/deploy.yml
 git commit -m "GitHub Pages デプロイ設定追加"
 git push origin main
 ```
-
-**Step 4: GitHub リポジトリの Pages 設定を変更**
-
-リポジトリページ → **Settings → Pages → Source** を `gh-pages` ブランチに変更。
 
 push 後、Actions タブで緑チェックが出たら `https://<user>.github.io/monocap-vrm/` でアクセス可能になります。
 
