@@ -16,6 +16,62 @@ export interface Tracker {
   close(): void
 }
 
+/**
+ * WebSocket ベースのリモートトラッカー。
+ * JPEG フレームをサーバーに送信し、MediaPipe ランドマーク JSON を受け取る。
+ * server/main.py と組み合わせて使用する。
+ * URL パラメータ ?server=ws://<host>:8000/ws で有効化。
+ */
+export async function createRemoteTracker(serverUrl: string): Promise<Tracker> {
+  const captureCanvas = document.createElement('canvas')
+  captureCanvas.width = 320
+  captureCanvas.height = 240
+  const captureCtx = captureCanvas.getContext('2d')!
+
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(serverUrl)
+
+    let lastResult: TrackingResult = { face: null, pose: null }
+    let pending = false
+
+    ws.onmessage = (e) => {
+      try {
+        lastResult = JSON.parse(e.data as string) as unknown as TrackingResult
+      } catch {
+        // ignore malformed response
+      }
+      pending = false
+    }
+
+    ws.onerror = () => reject(new Error(`サーバー接続失敗: ${serverUrl}`))
+
+    ws.onopen = () =>
+      resolve({
+        detect(video: HTMLVideoElement): TrackingResult {
+          if (!pending && ws.readyState === WebSocket.OPEN) {
+            pending = true
+            captureCtx.drawImage(video, 0, 0, 320, 240)
+            captureCanvas.toBlob(
+              (blob) => {
+                if (!blob) {
+                  pending = false
+                  return
+                }
+                ws.send(blob)
+              },
+              'image/jpeg',
+              0.7,
+            )
+          }
+          return lastResult
+        },
+        close() {
+          ws.close()
+        },
+      })
+  })
+}
+
 export async function createTracker(): Promise<Tracker> {
   const vision = await FilesetResolver.forVisionTasks(
     'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
