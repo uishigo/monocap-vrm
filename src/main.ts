@@ -3,7 +3,7 @@ import '@fortawesome/fontawesome-free/css/all.min.css'
 import * as THREE from 'three'
 import type { VRM } from '@pixiv/three-vrm'
 import { createRenderer, loadVRM } from './renderer'
-import { createTracker } from './tracker'
+import { createTracker, createRemoteTracker } from './tracker'
 import type { Tracker, TrackingResult } from './tracker'
 import { applyTracking } from './rigger'
 import { startCamera, stopCamera } from './camera'
@@ -52,6 +52,7 @@ let lastTrackingResult: TrackingResult | null = null
 let lastDetectTime = 0
 const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 const DETECT_INTERVAL = 1000 / (isMobile ? 10 : 30)  // モバイルは10fps、PCは30fps
+const serverUrl = new URLSearchParams(location.search).get('server')
 
 const fps: FpsCounter = { value: 0, lastTime: performance.now(), frameCount: 0 }
 
@@ -112,12 +113,14 @@ function loop() {
 
 async function initTracker() {
   if (tracker) return
-  setStatus('AIモデル読み込み中...', 'loading')
+  setStatus(serverUrl ? `サーバー接続中... (${serverUrl})` : 'AIモデル読み込み中...', 'loading')
   try {
-    tracker = await createTracker()
+    tracker = serverUrl
+      ? await createRemoteTracker(serverUrl)
+      : await createTracker()
     setStatus('準備完了', 'ready')
   } catch (e) {
-    setStatus('AIモデル読み込み失敗', 'error')
+    setStatus(serverUrl ? 'サーバー接続失敗' : 'AIモデル読み込み失敗', 'error')
     console.error(e)
   }
 }
@@ -147,7 +150,7 @@ btnCamera.addEventListener('click', async () => {
     updateView()
     btnCamera.innerHTML = '<i class="fa-solid fa-video"></i>'
     btnCamera.title = 'カメラ: ON'
-    setStatus('トラッキング中', 'ready')
+    setStatus(serverUrl ? 'リモートトラッキング中' : 'トラッキング中', 'ready')
   } catch (e) {
     setStatus('カメラアクセス失敗', 'error')
     console.error(e)
