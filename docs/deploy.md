@@ -1,64 +1,35 @@
 # デプロイ手順
 
-## 推奨デプロイ方法
+## 構成の整理
 
-**GitHub Pages + GitHub Actions** を推奨します。
+このアプリは「フロントエンド（静的サイト）」と「トラッキングサーバー（オプション）」の2つに分かれます。
 
-| 観点             | 理由                                                    |
-| ---------------- | ------------------------------------------------------- |
-| 無料             | パブリックリポジトリなら完全無料                        |
-| 自動化           | `main` に push するだけで再デプロイ                     |
-| HTTPS            | デフォルトで HTTPS 提供（MediaPipe の動作要件を満たす） |
-| 追加サービス不要 | GitHub 以外のアカウント登録が不要                       |
+| コンポーネント | 役割 | 必須か |
+|--------------|------|--------|
+| フロントエンド | Three.js VRM 描画 + UI | 必須 |
+| トラッキングサーバー | MediaPipe 推論（Python） | スマホ向け最適化時のみ |
 
-独自ドメインを使いたい場合や `github.io` のサブパス設定を避けたい場合は [Netlify](#netlify) が次点の選択肢です。
+ローカルトラッキング（従来動作）はフロントエンドだけで完結します。
 
 ---
 
-## 1. 本番ビルド
+## フロントエンドのデプロイ
 
-```bash
-npm run build
-```
+### 推奨: GitHub Pages + GitHub Actions
 
-`dist/` ディレクトリに静的ファイル（HTML / JS / CSS）が出力されます。
+| 観点 | 理由 |
+|------|------|
+| 無料 | パブリックリポジトリなら完全無料 |
+| 自動化 | `master` に push するだけで再デプロイ |
+| HTTPS | デフォルトで HTTPS（カメラ API の動作要件を満たす） |
 
-```bash
-# ビルド結果をローカルで確認
-npm run preview
-```
+#### セットアップ手順
 
-> **必須**: MediaPipe は WebGPU / WebAssembly を使用するため、**HTTPS 環境**でのみ動作します。  
-> `localhost` は例外として HTTP でも動作しますが、本番デプロイは必ず HTTPS にしてください。
+**Step 1: GitHub リポジトリの Pages 設定を変更**
 
----
+リポジトリ → **Settings → Pages → Build and deployment → Source** を **GitHub Actions** に変更。
 
-## 2. デプロイ先別の手順
-
-### GitHub Pages（推奨）
-
-#### 初回セットアップ
-
-**Step 1: `vite.config.ts` を作成してベースパスを設定**
-
-GitHub Pages のデフォルト URL は `https://<user>.github.io/<repo>/` とサブパスになるため、ベースパス設定が必須です。
-
-```typescript
-// vite.config.ts（プロジェクトルートに新規作成）
-import { defineConfig } from "vite";
-
-export default defineConfig({
-  base: "/monocap-vrm/",
-});
-```
-
-**Step 2: GitHub リポジトリの Pages 設定を変更**
-
-リポジトリページ → **Settings → Pages → Build and deployment → Source** を **GitHub Actions** に変更。
-
-> ブランチ選択などは不要です。ワークフローが直接デプロイします。
-
-**Step 3: GitHub Actions のワークフローを作成**
+**Step 2: ワークフローを作成**
 
 ```bash
 mkdir -p .github/workflows
@@ -108,39 +79,23 @@ jobs:
         id: deployment
 ```
 
-**Step 4: コミットして push**
+**Step 3: push**
 
 ```bash
-git add vite.config.ts .github/workflows/deploy.yml
+git add .github/workflows/deploy.yml
 git commit -m "GitHub Pages デプロイ設定追加"
-git push origin main
+git push origin master
 ```
 
 push 後、Actions タブで緑チェックが出たら `https://<user>.github.io/monocap-vrm/` でアクセス可能になります。
 
-#### 2回目以降のデプロイ
-
-`main` ブランチに push するだけで自動的に再ビルド・デプロイされます。
-
-```bash
-git push origin main  # これだけで OK
-```
-
-#### 手動デプロイ（CI を使わない場合）
-
-```bash
-npm install -D gh-pages
-npm run build
-npx gh-pages -d dist
-```
+以降は `master` に push するだけで自動デプロイされます。
 
 ---
 
 ### Netlify
 
-独自ドメインを使いたい場合や `vite.config.ts` のベースパス設定を避けたい場合の次点選択肢です。`base` の設定は不要で、`dist/` をそのままデプロイできます。
-
-**Netlify CLI を使う場合**
+独自ドメインを使いたい場合や `base` のサブパス設定を避けたい場合の次点選択肢です。
 
 ```bash
 npm install -g netlify-cli
@@ -148,25 +103,17 @@ npm run build
 netlify deploy --prod --dir=dist
 ```
 
-**Netlify ダッシュボードから手動デプロイ**
-
-1. [app.netlify.com](https://app.netlify.com) にログイン
-2. **Add new site → Deploy manually** を選択
-3. `dist/` フォルダをドラッグ&ドロップ
-
-**netlify.toml（リポジトリ連携時の設定）**
+リポジトリ連携時の `netlify.toml`：
 
 ```toml
 [build]
-  command   = "npm run build"
-  publish   = "dist"
+  command = "npm run build"
+  publish = "dist"
 ```
 
 ---
 
 ### Vercel
-
-**Vercel CLI を使う場合**
 
 ```bash
 npm install -g vercel
@@ -174,17 +121,7 @@ npm run build
 vercel --prod
 ```
 
-CLI の質問には以下を入力：
-
-| 質問                      | 入力値                       |
-| ------------------------- | ---------------------------- |
-| Set up and deploy?        | `Y`                          |
-| Which scope?              | 対象のチーム／個人アカウント |
-| Link to existing project? | `N`（初回）                  |
-| Build command?            | `npm run build`              |
-| Output directory?         | `dist`                       |
-
-**vercel.json（リポジトリ連携時の設定）**
+`vercel.json`：
 
 ```json
 {
@@ -198,10 +135,7 @@ CLI の質問には以下を入力：
 ### 自前サーバー（nginx）
 
 ```bash
-# ビルド
 npm run build
-
-# dist/ をサーバーにコピー
 scp -r dist/* user@your-server:/var/www/monocap-vrm/
 ```
 
@@ -215,18 +149,15 @@ server {
     root /var/www/monocap-vrm;
     index index.html;
 
-    # SPA: すべてのルートを index.html にフォールバック
     location / {
         try_files $uri $uri/ /index.html;
     }
 
-    # キャッシュ設定（ハッシュ付きアセットは長期キャッシュ）
     location ~* \.(js|css|woff2|png|svg)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
     }
 
-    # SSL 設定（Let's Encrypt 等）
     ssl_certificate     /etc/letsencrypt/live/your-domain.example.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/your-domain.example.com/privkey.pem;
 }
@@ -234,23 +165,121 @@ server {
 
 ---
 
-## 3. 注意事項
+## トラッキングサーバーのデプロイ
 
-### MediaPipe モデルファイルのキャッシュ
+> **用途**: スマホなど非力な端末で MediaPipe 推論をオフロードする場合のみ必要です。
 
-初回アクセス時に `cdn.jsdelivr.net` および `storage.googleapis.com` から MediaPipe のモデルファイル（数十 MB）をダウンロードします。  
-プロキシ環境や社内ネットワークからアクセスする場合はこれらのドメインへの通信を許可してください。
+### パターン A: LAN 内の PC で実行（推奨）
 
-### CORS ヘッダー
+最もシンプルで低遅延な構成です。PC とスマホが同じ Wi-Fi に繋がっていれば動作します。
 
-VRM ファイルをユーザーのローカルから読み込む仕様のため、CORS の設定は不要です。  
-ただし、サーバー上に VRM ファイルを置いて読み込ませる場合は適切な CORS 設定が必要です。
+```bash
+cd server
+pip install -r requirements.txt
+python main.py
+```
 
-### SharedArrayBuffer（将来の拡張向け）
-
-WebAssembly スレッドを使う場合は以下のレスポンスヘッダーが必要になります（現在は不要）：
+スマホのブラウザで以下にアクセス：
 
 ```
-Cross-Origin-Opener-Policy: same-origin
-Cross-Origin-Embedder-Policy: require-corp
+http://<PCのIPアドレス>:5173/monocap-vrm/?server=ws://<PCのIPアドレス>:8000/ws
+```
+
+> フロントエンドを GitHub Pages にデプロイしている場合、スマホから HTTPS でアクセスすることになります。  
+> **HTTPS のページから `ws://` （非暗号化 WebSocket）への接続はブラウザにブロックされます。**  
+> この場合はサーバーも WSS 化するか、フロントエンドも `http://` でアクセスしてください（LAN 内であれば HTTP で OK）。
+
+---
+
+### パターン B: VPS / クラウドサーバーで実行
+
+インターネット越しにアクセスさせたい場合の構成です。
+
+> **注意**: ネットワーク往復遅延（50〜200ms）が加わるため、アバターの動きにワンテンポのラグが出ます。LAN 内利用（パターン A）の方が快適です。
+
+#### サーバーへの配置
+
+```bash
+# サーバーに server/ ディレクトリを転送
+scp -r server/ user@your-server:~/monocap-vrm-server/
+
+ssh user@your-server
+cd ~/monocap-vrm-server
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+#### systemd で常駐化
+
+```ini
+# /etc/systemd/system/monocap-tracker.service
+[Unit]
+Description=MonoCapVRM Tracking Server
+After=network.target
+
+[Service]
+User=your-user
+WorkingDirectory=/home/your-user/monocap-vrm-server
+ExecStart=/home/your-user/monocap-vrm-server/.venv/bin/python main.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl enable --now monocap-tracker
+```
+
+#### nginx で WSS（WebSocket over TLS）をプロキシ
+
+HTTPS のフロントエンドから接続するには WSS が必要です。
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name tracker.your-domain.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/tracker.your-domain.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tracker.your-domain.example.com/privkey.pem;
+
+    location /ws {
+        proxy_pass http://127.0.0.1:8000/ws;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 86400;
+    }
+}
+```
+
+接続 URL：
+
+```
+https://your-frontend.github.io/monocap-vrm/?server=wss://tracker.your-domain.example.com/ws
+```
+
+---
+
+## 注意事項
+
+### MediaPipe モデルファイルのキャッシュ（ローカルモード）
+
+初回アクセス時に `cdn.jsdelivr.net` および `storage.googleapis.com` からモデルを DL します。  
+プロキシ環境ではこれらのドメインへの通信を許可してください。
+
+### CORS
+
+VRM ファイルはローカルから読み込む仕様のため CORS 設定は不要です。  
+サーバー上に VRM を置く場合のみ適切な CORS 設定が必要です。  
+トラッキングサーバー（`server/main.py`）は `allow_origins=["*"]` で全オリジンを許可済みです。
+
+### `server/models/` は `.gitignore` に追加推奨
+
+モデルファイルは数十 MB あるため、リポジトリには含めないことを推奨します。
+
+```gitignore
+server/models/
+server/.venv/
 ```
