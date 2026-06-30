@@ -36,3 +36,8 @@ dist-ssr
 
 # OS
 Thumbs.db
+
+# Server
+server/models/
+server/.venv/
+server/__pycache__/
